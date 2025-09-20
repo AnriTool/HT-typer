@@ -1,151 +1,247 @@
 import htwords from './assets/jshttp.json'
+import { Word } from './game/word.ts'
+import { Keyboard } from "./game/keyboard.ts";
+import { Char } from "./game/char.ts";
+import { AnimationManager } from './utils/animation.ts';
+import { AudioManager } from './utils/audio.ts';
+import type { GameState, PressedKeys, GameConfig } from './types/game.ts';
 
-import {Word} from './game/word.ts'
-import {Keyboard} from "./game/keyboard.ts";
-import {Char} from "./game/char.ts";
+// Константы игры
+const GAME_CONFIG: GameConfig = {
+	ANIMATION_DURATION: 7000, // 7 секунд
+	TARGET_POSITION: 268,
+	START_POSITION: 46.3, // в процентах
+	KEYBOARD_SCALE: 1.25,
+	KEYBOARD_NORMAL_SCALE: 1,
+	RANDOM_AUDIO_COUNT: 3
+} as const;
 
-function getRandomInt(max: number) {
+// Утилиты
+function getRandomInt(max: number): number {
 	return Math.floor(Math.random() * max);
 }
 
-let word: Word;
+// Основной класс игры
+class Game {
+	private state: GameState;
+	private pressedKeys: PressedKeys;
+	private keyboard: Keyboard;
+	private paperElement: HTMLElement;
+	private typeThisElement: HTMLElement;
+	private mistakesElement: HTMLElement;
+	private scoreElement: HTMLElement;
 
-function scaleKeyboardElem(char: string,scaleFactor: number) {
-	document.getElementById(`keyboard_${char.toLowerCase()}`).style.scale = scaleFactor.toString();
-}
+	constructor() {
+		this.state = {
+			isStarted: false,
+			score: 0,
+			mistakes: 0,
+			currentWord: null
+		};
+		
+		this.pressedKeys = {};
+		this.keyboard = new Keyboard();
+		
+		// Получаем DOM элементы
+		this.paperElement = this.getElement('paper');
+		this.typeThisElement = this.getElement('type');
+		this.mistakesElement = this.getElement('mistakes');
+		this.scoreElement = this.getElement('score');
+		
+		this.initializeGame();
+	}
 
-window.addEventListener('keydown', (event: KeyboardEvent) => {
-	if (true !== pressedKeys[event.code]) {
-		pressedKeys[event.code] = true;
-		new Audio(`./assets/audio/${getRandomInt(3)}.mp3`).play();
+	private async initializeGame(): Promise<void> {
+		// Предзагружаем звуки
+		const soundPaths = Array.from({ length: GAME_CONFIG.RANDOM_AUDIO_COUNT }, (_, i) => `./assets/audio/${i}.mp3`);
+		try {
+			await AudioManager.preloadSounds(soundPaths);
+		} catch (error) {
+			console.warn('Не удалось предзагрузить все звуки:', error);
+		}
+
+		this.setupEventListeners();
+		this.startGame();
+	}
+
+	private getElement(id: string): HTMLElement {
+		const element = document.getElementById(id);
+		if (!element) {
+			throw new Error(`Element with id '${id}' not found`);
+		}
+		return element;
+	}
+
+	private setupEventListeners(): void {
+		window.addEventListener('keydown', this.handleKeyDown.bind(this));
+		window.addEventListener('keyup', this.handleKeyUp.bind(this));
+	}
+
+	private handleKeyDown(event: KeyboardEvent): void {
+		if (this.pressedKeys[event.code]) return;
+		
+		this.pressedKeys[event.code] = true;
+		this.playRandomSound();
 
 		if (event.code.includes('Key')) {
 			const key = event.code.slice(-1).toLowerCase();
-			scaleKeyboardElem(key,1.25);
-
-			if (key === word.word[0]) {
-				const el = word.getElement().childNodes[word.getElement().childNodes.length - word.word.length] as HTMLElement;
-				el.style =
-					'filter: grayscale(100%) brightness(80%) sepia(100%) hue-rotate(68deg) saturate(500%);'
-				word.word.shift();
-
-				if (true === GAME_STARTED) {
-					scoreElement.textContent = String(Number(scoreElement.textContent) + 1);
-				}
-			}
-			else {
-				mistakesElement.textContent = String(Number(mistakesElement.textContent) + 1);
-			}
-
-			if (0 === word.word.length) {
-				restartWord();
-
-				if (false == GAME_STARTED) {
-					mistakesElement.textContent = '0';
-					scoreElement.textContent    = '0';
-					GAME_STARTED                = true;
-				}
-			}
-
-			typeCharReset()
-		}
-		else if ('Space' === event.code) {
-			document.getElementById('keyboard_space').style.scale = '1.25';
+			this.keyboard.highlightKey(key, GAME_CONFIG.KEYBOARD_SCALE);
+			this.handleLetterInput(key);
+		} else if (event.code === 'Space') {
+			this.keyboard.highlightKey('space', GAME_CONFIG.KEYBOARD_SCALE);
 		}
 	}
-})
 
-window.addEventListener('keyup', (event: KeyboardEvent) => {
-	pressedKeys[event.code] = false;
+	private handleKeyUp(event: KeyboardEvent): void {
+		this.pressedKeys[event.code] = false;
 
-	if (event.code.includes('Key')) {
-		scaleKeyboardElem(event.code.slice(-1),1);
-	}
-	else if ('Space' === event.code) {
-		scaleKeyboardElem('space',1);
-	}
-})
-
-function animateElementDown(element: HTMLElement, targetPosition: number, resetGame: () => void): void {
-	const startPosition = element.offsetTop;
-	const distance = targetPosition - startPosition;
-	const duration = 7 * 1000;
-	let startTime: number | null = null;
-
-	const step = (timestamp: number) => {
-		if (false === document.body.contains(element)) {
-			return
+		if (event.code.includes('Key')) {
+			this.keyboard.resetKey(event.code.slice(-1).toLowerCase());
+		} else if (event.code === 'Space') {
+			this.keyboard.resetKey('space');
 		}
+	}
 
-		if (!startTime) startTime = timestamp;
-		const elapsed = timestamp - startTime;
-		const progress = Math.min(elapsed / duration, 1);
+	private playRandomSound(): void {
+		const soundPath = `./assets/audio/${getRandomInt(GAME_CONFIG.RANDOM_AUDIO_COUNT)}.mp3`;
+		AudioManager.playSound(soundPath, 0.7);
+	}
 
-		element.style.top = `${startPosition + distance * progress}px`;
+	private handleLetterInput(key: string): void {
+		if (!this.state.currentWord) return;
 
-		if (progress < 1) {
-			requestAnimationFrame(step);
+		if (key === this.state.currentWord.getCurrentLetter()) {
+			this.state.currentWord.markLetterAsTyped();
+			this.updateScore();
 		} else {
-			resetGame();
+			if (this.state.isStarted) {
+				this.incrementMistakes();
+			}
 		}
-	};
 
-	requestAnimationFrame(step);
+		if (this.state.currentWord.isComplete()) {
+			this.restartWord();
+			if (!this.state.isStarted) {
+				this.startScoring();
+			}
+		}
+
+		this.updateTypeChar();
+	}
+
+	private updateScore(): void {
+		if (this.state.isStarted) {
+			this.state.score++;
+			this.scoreElement.textContent = this.state.score.toString();
+		}
+	}
+
+	private incrementMistakes(): void {
+		this.state.mistakes++;
+		this.mistakesElement.textContent = this.state.mistakes.toString();
+	}
+
+	private startScoring(): void {
+		this.state.isStarted = true;
+		this.state.mistakes = 0;
+		this.state.score = 0;
+		this.mistakesElement.textContent = '0';
+		this.scoreElement.textContent = '0';
+	}
+
+	private updateTypeChar(): void {
+		if (!this.state.currentWord) return;
+
+		// Очищаем предыдущий символ
+		while (this.typeThisElement.firstChild) {
+			this.typeThisElement.firstChild.remove();
+		}
+
+		// Добавляем новый символ для ввода
+		const char = new Char(this.state.currentWord.getCurrentLetter()).getElement();
+		char.className += ' type-this-char';
+		this.typeThisElement.appendChild(char);
+	}
+
+	private animateElementDown(element: HTMLElement, targetPosition: number, onComplete: () => void): void {
+		const startPosition = element.offsetTop;
+		
+		AnimationManager.animateElement(
+			element,
+			'top',
+			startPosition,
+			targetPosition,
+			GAME_CONFIG.ANIMATION_DURATION,
+			onComplete
+		);
+	}
+
+	private restartWord(): void {
+		if (this.state.currentWord) {
+			this.paperElement.removeChild(this.state.currentWord.getElement());
+		}
+
+		const randomWord = htwords[getRandomInt(htwords.length)].toLowerCase();
+		this.state.currentWord = new Word(randomWord);
+		this.paperElement.appendChild(this.state.currentWord.getElement());
+
+		this.animateElementDown(this.state.currentWord.getElement(), GAME_CONFIG.TARGET_POSITION, () => {
+			this.restartGame();
+			this.updateTypeChar();
+		});
+	}
+
+	private startGame(): void {
+		this.state.currentWord = new Word('start');
+		this.state.currentWord.getElement().style.top = `${GAME_CONFIG.START_POSITION}%`;
+		this.paperElement.appendChild(this.state.currentWord.getElement());
+		this.updateTypeChar();
+	}
+
+	private restartGame(): void {
+		console.log('game restarted')
+		if (this.state.currentWord) {
+			this.paperElement.removeChild(this.state.currentWord.getElement());
+		}
+		
+		this.state.currentWord = new Word('restart');
+		this.state.isStarted = false;
+		this.paperElement.appendChild(this.state.currentWord.getElement());
+		this.state.currentWord.getElement().style.top = `${GAME_CONFIG.START_POSITION}%`;
+	}
+
+	// Публичные методы для управления игрой
+	public pause(): void {
+		AnimationManager.cancelAllAnimations();
+	}
+
+	public resume(): void {
+		// Логика возобновления игры при необходимости
+	}
+
+	public reset(): void {
+		this.pause();
+		this.state = {
+			isStarted: false,
+			score: 0,
+			mistakes: 0,
+			currentWord: null
+		};
+		this.startGame();
+	}
+
+	public destroy(): void {
+		this.pause();
+		AudioManager.clearCache();
+		// Удаляем обработчики событий
+		window.removeEventListener('keydown', this.handleKeyDown.bind(this));
+		window.removeEventListener('keyup', this.handleKeyUp.bind(this));
+	}
 }
 
-function restartWord(){
-	paperElement.removeChild(word.getElement())
-	word = new Word(htwords[getRandomInt(htwords.length)].toLowerCase());
-	paperElement.appendChild(word.getElement());
+// Инициализация игры
+new Game();
 
-	animateElementDown(word.getElement(), 268, ()=> {
-		restartGame();
-		typeCharReset()
-	})
-}
-
-function startGame () {
-	word = new Word('start');
-
-	word.getElement().style.top = '46.3%'
-
-	paperElement.appendChild(word.getElement());
-}
-
-function restartGame () {
-	paperElement.removeChild(word.getElement())
-	word         = new Word('restart');
-	GAME_STARTED = false;
-	paperElement.appendChild(word.getElement());
-	word.getElement().style.top = '46.3%'
-}
-
-function typeCharReset() {
-	typeThisElement.firstChild.remove();
-
-	const char      = new Char(word.word[0]).getElement();
-	char.className += ' type-this-char'
-
-	typeThisElement.appendChild(char)
-}
-
-const paperElement = document.getElementById('paper');
-
-const typeThisElement = document.getElementById('type');
-
-const mistakesElement = document.getElementById('mistakes');
-
-const scoreElement = document.getElementById('score');
-
-let GAME_STARTED = false;
-
-new Keyboard()
-
-const pressedKeys: { [key: string]: boolean } = {};
-
-startGame();
-
-typeCharReset()
 
 
 

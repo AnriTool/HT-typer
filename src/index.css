@@ -86,6 +86,14 @@ body {
 .keyboard_button {
 	margin-left: 5px;
 	margin-top:  2px;
+	transition: scale 0.1s ease;
+}
+
+.keyboard-row {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-bottom: 2px;
 }
 
 .character {
