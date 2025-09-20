@@ -1,7 +1,8 @@
 import htwords from './assets/jshttp.json'
+import regwords from './assets/words.json'
 import { Word } from './game/word.ts'
 import { Keyboard } from "./game/keyboard.ts";
-import { Char } from "./game/char.ts";
+import { CharAtlas } from './game/char-atlas.ts';
 import { AnimationManager } from './utils/animation.ts';
 import { AudioManager } from './utils/audio.ts';
 import type { GameState, PressedKeys, GameConfig } from './types/game.ts';
@@ -30,13 +31,15 @@ class Game {
 	private typeThisElement: HTMLElement;
 	private mistakesElement: HTMLElement;
 	private scoreElement: HTMLElement;
+	private wordsListElement: HTMLElement;
 
 	constructor() {
 		this.state = {
 			isStarted: false,
 			score: 0,
 			mistakes: 0,
-			currentWord: null
+			currentWord: null,
+			wordList: regwords,
 		};
 		
 		this.pressedKeys = {};
@@ -47,7 +50,18 @@ class Game {
 		this.typeThisElement = this.getElement('type');
 		this.mistakesElement = this.getElement('mistakes');
 		this.scoreElement = this.getElement('score');
-		
+		this.wordsListElement = this.getElement('words-list');
+
+		this.mistakesElement.firstChild.remove();
+		this.mistakesElement.appendChild(new Word('0','word-static').getElement())
+
+		this.scoreElement.firstChild.remove();
+		this.scoreElement.appendChild(new Word('0','word-static').getElement())
+
+		this.wordsListElement.firstChild.remove();
+		this.wordsListElement.appendChild(new Word('regular', 'word-static').getElement())
+
+
 		this.initializeGame();
 	}
 
@@ -75,6 +89,7 @@ class Game {
 	private setupEventListeners(): void {
 		window.addEventListener('keydown', this.handleKeyDown.bind(this));
 		window.addEventListener('keyup', this.handleKeyUp.bind(this));
+		this.wordsListElement.addEventListener('click', this.changeWordsList.bind(this));
 	}
 
 	private handleKeyDown(event: KeyboardEvent): void {
@@ -99,6 +114,19 @@ class Game {
 			this.keyboard.resetKey(event.code.slice(-1).toLowerCase());
 		} else if (event.code === 'Space') {
 			this.keyboard.resetKey('space');
+		}
+	}
+
+	private changeWordsList(): void {
+		if (this.state.wordList[0] == 'regular') {
+			this.state.wordList = htwords;
+			this.wordsListElement.firstChild.remove();
+			this.wordsListElement.appendChild(new Word(this.state.wordList[0], 'word-static').getElement())
+		}
+		else {
+			this.state.wordList = regwords;
+			this.wordsListElement.firstChild.remove();
+			this.wordsListElement.appendChild(new Word(this.state.wordList[0], 'word-static').getElement())
 		}
 	}
 
@@ -132,21 +160,29 @@ class Game {
 	private updateScore(): void {
 		if (this.state.isStarted) {
 			this.state.score++;
-			this.scoreElement.textContent = this.state.score.toString();
+
+			this.scoreElement.firstChild.remove();
+			this.scoreElement.appendChild(new Word(this.state.score.toString(),'word-static').getElement())
 		}
 	}
 
 	private incrementMistakes(): void {
 		this.state.mistakes++;
-		this.mistakesElement.textContent = this.state.mistakes.toString();
+
+		this.mistakesElement.firstChild.remove();
+		this.mistakesElement.appendChild(new Word(this.state.mistakes.toString(),'word-static').getElement())
 	}
 
 	private startScoring(): void {
 		this.state.isStarted = true;
 		this.state.mistakes = 0;
 		this.state.score = 0;
-		this.mistakesElement.textContent = '0';
-		this.scoreElement.textContent = '0';
+
+		this.mistakesElement.firstChild.remove();
+		this.mistakesElement.appendChild(new Word('0','word-static').getElement())
+
+		this.scoreElement.firstChild.remove();
+		this.scoreElement.appendChild(new Word('0','word-static').getElement())
 	}
 
 	private updateTypeChar(): void {
@@ -158,7 +194,7 @@ class Game {
 		}
 
 		// Добавляем новый символ для ввода
-		const char = new Char(this.state.currentWord.getCurrentLetter()).getElement();
+		const char = new CharAtlas(this.state.currentWord.getCurrentLetter()).getElement();
 		char.className += ' type-this-char';
 		this.typeThisElement.appendChild(char);
 	}
@@ -181,7 +217,7 @@ class Game {
 			this.paperElement.removeChild(this.state.currentWord.getElement());
 		}
 
-		const randomWord = htwords[getRandomInt(htwords.length)].toLowerCase();
+		const randomWord = this.state.wordList[getRandomInt(this.state.wordList.length)].toLowerCase();
 		this.state.currentWord = new Word(randomWord);
 		this.paperElement.appendChild(this.state.currentWord.getElement());
 
@@ -199,7 +235,6 @@ class Game {
 	}
 
 	private restartGame(): void {
-		console.log('game restarted')
 		if (this.state.currentWord) {
 			this.paperElement.removeChild(this.state.currentWord.getElement());
 		}
@@ -208,34 +243,6 @@ class Game {
 		this.state.isStarted = false;
 		this.paperElement.appendChild(this.state.currentWord.getElement());
 		this.state.currentWord.getElement().style.top = `${GAME_CONFIG.START_POSITION}%`;
-	}
-
-	// Публичные методы для управления игрой
-	public pause(): void {
-		AnimationManager.cancelAllAnimations();
-	}
-
-	public resume(): void {
-		// Логика возобновления игры при необходимости
-	}
-
-	public reset(): void {
-		this.pause();
-		this.state = {
-			isStarted: false,
-			score: 0,
-			mistakes: 0,
-			currentWord: null
-		};
-		this.startGame();
-	}
-
-	public destroy(): void {
-		this.pause();
-		AudioManager.clearCache();
-		// Удаляем обработчики событий
-		window.removeEventListener('keydown', this.handleKeyDown.bind(this));
-		window.removeEventListener('keyup', this.handleKeyUp.bind(this));
 	}
 }
 

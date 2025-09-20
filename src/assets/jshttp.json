@@ -1,4 +1,5 @@
 [
+	"script",
 	"setTimeout", "localStorage", 
 	"classList", "fetch", "Promise", "map", "filter", "reduce", "forEach", "split",
 	"join", "toString", "Date", "consolelog", "alert", "document", "window", "navigator",

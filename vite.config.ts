@@ -18,10 +18,6 @@ export default defineConfig({
 		viteStaticCopy({
 			targets: [
 				{
-					src:'assets/chars/*',
-					dest:'assets/chars/'
-				},
-				{
 					src:'assets/audio/*',
 					dest:'assets/audio/'
 				}

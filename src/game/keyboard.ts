@@ -1,4 +1,4 @@
-import { Char } from "./char.ts";
+import { CharAtlas } from './char-atlas.ts';
 
 export class Keyboard {
 	private readonly element: HTMLElement;
@@ -40,7 +40,7 @@ export class Keyboard {
 	}
 
 	private createKey(key: string): HTMLElement {
-		const charElement = new Char(key).getElement();
+		const charElement = new CharAtlas(key).getElement();
 		charElement.id = `keyboard_${key}`;
 		charElement.className += ' keyboard_button';
 		charElement.setAttribute('data-key', key);

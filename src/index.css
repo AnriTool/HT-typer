@@ -4,7 +4,7 @@ body {
 }
 
 * {
-	box-sizing: border-box;
+	box-sizing:      border-box;
 	image-rendering: pixelated;
 }
 
@@ -69,6 +69,16 @@ body {
 	bottom:   11%;
 }
 
+.words-list {
+	background-image: url("./assets/wordlist.png");
+	background-size:  131px 55px;
+	width:            131px;
+	height:           55px;
+	position:         absolute;
+	top:              17%;
+	right:            1%;
+}
+
 .keyboard {
 	background-image: url("./assets/keyboard.png");
 	background-size:  222px 100px;
@@ -97,10 +107,27 @@ body {
 }
 
 .character {
-	margin-right:    1px;
+	/* Переменные для позиции */
+	--sprite-x: 0px;
+	--sprite-y: 0px;
+	--sprite-w: 0px;
+	--sprite-h: 0px;
+
+	margin-right:      1px;
+	background-image:  url("./assets/atlas.png");
+	background-repeat: no-repeat;
+
+	height:              var(--sprite-h);
+	width:               var(--sprite-w);
+	background-position: var(--sprite-x) var(--sprite-y);
 }
 
 .word {
 	position: absolute;
 	left:     78px;
+	display:  flex;
+}
+
+.word-static {
+	display: flex;
 }

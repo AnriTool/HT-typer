@@ -1,18 +1,18 @@
-import { Char } from './char.ts';
+import { CharAtlas } from './char-atlas.ts';
 
 export class Word {
 	private readonly word: string[];
 	private readonly element: HTMLDivElement;
 	private currentIndex: number = 0;
 
-	constructor(word: string) {
+	constructor(word: string, className:string = 'word') {
 		this.word = Array.from(word);
 		this.element = document.createElement('div');
-		this.element.className = 'word';
+		this.element.className = className;
 
 		// Создаем элементы для каждого символа
 		for (const char of word) {
-			this.element.appendChild(new Char(char).getElement());
+			this.element.appendChild(new CharAtlas(char).getElement());
 		}
 	}
 
@@ -37,24 +37,5 @@ export class Word {
 
 	public isComplete(): boolean {
 		return this.currentIndex >= this.word.length;
-	}
-
-	public getWord(): string {
-		return this.word.join('');
-	}
-
-	public getRemainingLetters(): string[] {
-		return this.word.slice(this.currentIndex);
-	}
-
-	public reset(): void {
-		this.currentIndex = 0;
-		// Сбрасываем стили всех символов
-		for (let i = 0; i < this.element.childNodes.length; i++) {
-			const charElement = this.element.childNodes[i] as HTMLElement;
-			if (charElement) {
-				charElement.style.filter = '';
-			}
-		}
 	}
 }

@@ -4,6 +4,7 @@ export interface GameState {
 	score: number;
 	mistakes: number;
 	currentWord: Word | null;
+	wordList: Array<string>;
 }
 
 export interface PressedKeys {
