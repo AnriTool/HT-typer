@@ -1,4 +1,5 @@
 # HT Typer - typing game
+https://anritool.itch.io/ht-typer
 
 Simple typing game on TypeScript with Vite build.
 
