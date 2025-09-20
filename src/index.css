@@ -1,0 +1,98 @@
+body {
+	background: aqua;
+	margin: 0;
+}
+
+* {
+	box-sizing: border-box;
+	image-rendering: pixelated;
+}
+
+.background {
+	background-image: url("./assets/background.png");
+	background-size:  600px 400px;
+	width:            600px;
+	height:           400px;
+	display:          flex;
+	justify-content:  center;
+	position:         relative;
+}
+
+.paper {
+	background-image: url("./assets/list.png");
+	background-size:  308px 290px;
+	width:            308px;
+	height:           290px;
+	position:         absolute;
+}
+
+.ccd {
+	display:          flex;
+	align-items:      flex-end;
+	justify-content:  center;
+	padding-bottom:   5px;
+}
+
+.press-this {
+	background-image: url("./assets/type.png");
+	background-size:  152px 55px;
+	width:            152px;
+	height:           55px;
+	position:         absolute;
+	bottom:           1%;
+	left:             1%;
+}
+
+.score {
+	background-image: url("./assets/score.png");
+	background-size:  86px 55px;
+	width:            86px;
+	height:           55px;
+	position:         absolute;
+	bottom:           1%;
+	right:            4.5%;
+}
+
+.mistakes {
+	background-image: url("./assets/mistakes.png");
+	background-size:  131px 55px;
+	width:            131px;
+	height:           55px;
+	position:         absolute;
+	bottom:           17%;
+	right:            1%;
+}
+
+.type-this-char {
+	position: absolute;
+	left:     45%;
+	bottom:   11%;
+}
+
+.keyboard {
+	background-image: url("./assets/keyboard.png");
+	background-size:  222px 100px;
+	width:            222px;
+	height:           100px;
+	position:         absolute;
+	bottom:           1%;
+	display:          flex;
+	flex-direction:   column;
+	align-items:      center;
+	padding-top:      8px;
+	padding-right:    5px;
+}
+
+.keyboard_button {
+	margin-left: 5px;
+	margin-top:  2px;
+}
+
+.character {
+	margin-right:    1px;
+}
+
+.word {
+	position: absolute;
+	left:     78px;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "ht-typer",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["typer", "game"],
+  "author": "AnriTool",
+  "license": "MIT",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "typescript": "^5.0.0",
+    "vite": "^7.1.5",
+    "vite-plugin-static-copy": "^3.1.2"
+  }
+}
